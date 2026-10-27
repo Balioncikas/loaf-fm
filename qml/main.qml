@@ -10,6 +10,7 @@ ApplicationWindow {
     minimumWidth: 640
     minimumHeight: 420
     visible: true
+    background: null
     title: (nativeBridge.isAdmin ? qsTr("[Administrator] ") : "") + "Loaf - " + (activeView === "settings"
         ? qsTr("Settings")
         : activeView === "pc" ? (core.hostname || qsTr("This PC"))
@@ -763,10 +764,10 @@ ApplicationWindow {
     FontLoader { source: "qrc:/loaf/fonts/Phosphor.ttf" }
     FontLoader { source: "qrc:/loaf/fonts/Phosphor-Bold.ttf" }
 
-    // Decorative background blobs (skipped in low-power mode).
+    // Decorative background blobs (skipped in low-power mode and when background is translucent).
     Item {
         anchors.fill: parent
-        visible: !theme.lowPower
+        visible: !theme.lowPower && theme.effectiveBackgroundOpacity >= 0.98
         Rectangle {
             width: 420; height: 220; radius: 200; x: -40; y: -50
             color: theme.primaryContainer
@@ -1586,8 +1587,8 @@ ApplicationWindow {
                             radius: theme.radiusXl
                             color: theme.backdropSurface(theme.surfaceContainerLow)
                             clip: true
-                            border.width: (window.splitView && window.activePane === pane0) ? 2 : (window.splitView ? 1 : (window.keyboardNavActive ? 2 : 0))
-                            border.color: (window.splitView && window.activePane === pane0) ? theme.primary : (window.splitView ? theme.outlineVariant : theme.primary)
+                            border.width: (window.splitView && window.activePane === pane0) ? 2 : (window.keyboardNavActive ? 2 : 1)
+                            border.color: (window.splitView && window.activePane === pane0) ? theme.primary : (window.keyboardNavActive ? theme.primary : theme.outlineVariant)
                             Behavior on border.color { enabled: theme.animate; ColorAnimation { duration: theme.durationFast } }
                             Behavior on border.width { enabled: theme.animate; NumberAnimation { duration: theme.durationFast } }
 

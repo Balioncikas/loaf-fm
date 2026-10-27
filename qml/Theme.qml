@@ -7,15 +7,28 @@ Item {
     property string themeMode: "auto" // "auto", "light", "dark"
     property real backgroundOpacity: 1.0
     readonly property real effectiveBackgroundOpacity: lowPower ? 1.0
-        : (isFinite(backgroundOpacity) ? Math.max(0.5, Math.min(1.0, backgroundOpacity)) : 1.0)
+        : (isFinite(backgroundOpacity) ? Math.max(0.0, Math.min(1.0, backgroundOpacity)) : 1.0)
 
     // Only large background surfaces use alpha. Foregrounds and popup surfaces
     // retain their palette colors, so text, icons and dialogs remain opaque.
-    readonly property color windowBackground: Qt.rgba(background.r, background.g, background.b, effectiveBackgroundOpacity)
+    //
+    // The window's clear color goes straight into the premultiplied Wayland
+    // buffer, so its RGB must already be premultiplied by the alpha. A plain
+    // Qt.rgba(c, a) with a < 1 writes un-premultiplied RGB into the buffer and
+    // the compositor adds it on top of the wallpaper — that is what turned a
+    // fully transparent window into a white veil in light mode.
+    readonly property color windowBackground: {
+        var a = effectiveBackgroundOpacity;
+        return Qt.rgba(background.r * a, background.g * a, background.b * a, a);
+    }
     function backdropSurface(color) {
-        // A light tint above the window preserves surface hierarchy without
-        // stacking several nearly opaque backgrounds over the desktop.
-        var alpha = effectiveBackgroundOpacity < 1.0 ? 0.16 : 1.0;
+        if (effectiveBackgroundOpacity >= 1.0)
+            return color;
+        // Keep surfaces translucent in direct proportion to window opacity.
+        // At 0% opacity, the container surface becomes completely clear (alpha 0)
+        // just like a transparent terminal, so compositor blur and wallpaper show
+        // through without any artificial white/gray backing veil.
+        var alpha = effectiveBackgroundOpacity * 0.85;
         return Qt.rgba(color.r, color.g, color.b, alpha);
     }
     property string accentName: "wallpaper" // "wallpaper", "lavender", "amber", "catppuccin", "nord", "tokyonight", "gruvbox", "rosepine"
@@ -2028,7 +2041,7 @@ Item {
         if (value.length > 0) themeMode = value;
         value = readSetting("backgroundOpacity");
         if (value.trim().length > 0 && isFinite(Number(value)))
-            backgroundOpacity = Math.max(0.5, Math.min(1.0, Number(value)));
+            backgroundOpacity = Math.max(0.0, Math.min(1.0, Number(value)));
         value = readSetting("accentName");
         if (value.length > 0) accentName = value;
         if (accentName === "wallpaper" && typeof core !== "undefined" && core)

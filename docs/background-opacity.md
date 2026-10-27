@@ -1,6 +1,6 @@
 # Background opacity
 
-Open **Settings → Interface → Background opacity** to choose between 50% and
+Open **Settings → Interface → Background opacity** to choose between 0% and
 100%. The default is 100% (solid). Text, icons, menus, dialogs and selection
 colors remain opaque. Low-power mode temporarily restores solid backgrounds
 without losing the saved opacity preference.

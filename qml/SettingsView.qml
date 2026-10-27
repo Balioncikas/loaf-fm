@@ -466,7 +466,7 @@ Item {
                                     id: backgroundOpacitySlider
                                     Layout.preferredWidth: 120
                                     implicitHeight: 36
-                                    from: 0.5
+                                    from: 0.0
                                     to: 1.0
                                     stepSize: 0.01
                                     value: theme.backgroundOpacity
