@@ -787,6 +787,7 @@ impl qobject::LoafCore {
     }
 
     pub fn reload_wallpaper_colors(mut self: Pin<&mut Self>) -> bool {
+        icons::reload_system_theme();
         let Some((_, content, _)) = theme::read_wallpaper_colors_source() else { return false };
         if content == self.wallpaper_colors_json().to_string() {
             return false;
