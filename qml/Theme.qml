@@ -113,7 +113,7 @@ Item {
     readonly property bool isDark: themeMode === "dark" ? true
         : (themeMode === "light" ? false
         : ((typeof core !== "undefined" && core && typeof core.is_dark === "boolean") ? core.is_dark
-        : ((Application.styleHints && Application.styleHints.colorScheme === Qt.Light) ? false : true)))
+        : false))
 
     readonly property var wallpaperData: {
         try {
