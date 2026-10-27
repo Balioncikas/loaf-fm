@@ -51,8 +51,7 @@ Popup {
             anchors.topMargin: 3
             anchors.bottomMargin: -3
             radius: popup.surfaceRadius
-            color: "#000000"
-            opacity: theme.isDark ? 0.35 : 0.12
+            color: theme.shadow
         }
         Rectangle {
             id: surfaceRect

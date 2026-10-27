@@ -40,7 +40,7 @@ Popup {
     }
 
     Overlay.modal: Rectangle {
-        color: "#00000099"
+        color: theme.scrim
     }
 
     background: Rectangle {

@@ -131,9 +131,9 @@ LoafPopup {
     function highlightCode(code, language) {
         var keywords = keywordsFor(language);
         var commentColor = theme.outline;
-        var stringColor = theme.isDark ? "#8bd5a4" : "#0b7a3f";
-        var numberColor = theme.isDark ? "#f0b072" : "#a35b00";
-        var keywordColor = theme.primary;
+        var stringColor = theme.syntaxString;
+        var numberColor = theme.syntaxNumber;
+        var keywordColor = theme.syntaxKeyword;
 
         // One pass over the source: the first alternative that matches at a
         // position wins, so comments/strings are consumed whole.

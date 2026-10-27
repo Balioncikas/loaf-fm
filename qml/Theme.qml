@@ -2002,9 +2002,15 @@ Item {
     readonly property color hoverOverlay: isDark ? Qt.rgba(1.0, 1.0, 1.0, 0.08) : Qt.rgba(0.0, 0.0, 0.0, 0.06)
     readonly property color activeOverlay: isDark ? Qt.rgba(1.0, 1.0, 1.0, 0.14) : Qt.rgba(0.0, 0.0, 0.0, 0.10)
     readonly property color menuItemHover: isDark ? Qt.rgba(1.0, 1.0, 1.0, 0.09) : Qt.rgba(0.0, 0.0, 0.0, 0.05)
-    readonly property color danger: isDark ? "#f2b8b5" : "#ba1a1a"
-    readonly property color dangerContainer: isDark ? "#381e1e" : "#ffdad6"
-    readonly property color dangerFg: danger
+    readonly property color scrim: isDark ? Qt.rgba(0.0, 0.0, 0.0, 0.60) : Qt.rgba(0.0, 0.0, 0.0, 0.35)
+    readonly property color shadow: isDark ? Qt.rgba(0.0, 0.0, 0.0, 0.45) : Qt.rgba(0.0, 0.0, 0.0, 0.14)
+    readonly property color selectionBox: Qt.rgba(primary.r, primary.g, primary.b, isDark ? 0.24 : 0.16)
+    readonly property color syntaxString: isDark ? tertiaryContainer : primary
+    readonly property color syntaxNumber: isDark ? secondaryContainerFg : primary
+    readonly property color syntaxKeyword: primary
+    readonly property color danger: isDark ? "#ffb4ab" : "#ba1a1a"
+    readonly property color dangerContainer: isDark ? "#93000a" : "#ffdad6"
+    readonly property color dangerFg: isDark ? "#690005" : "#ffffff"
     readonly property color track: isDark ? activePalette.darkSurfaceHighest : activePalette.lightSurfaceHigh
     readonly property color borderSubtle: outlineVariant
     readonly property color separator: outlineVariant
