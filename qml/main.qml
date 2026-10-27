@@ -138,7 +138,20 @@ ApplicationWindow {
         if (!item || !item.path)
             return;
         if (item.is_dir) {
-            pane.engine.set_path(item.path);
+            var openMode = theme.openFolderMode || "current";
+            if (openMode === "tab") {
+                window.newTab(item.path);
+            } else if (openMode === "split") {
+                if (!window.splitView) {
+                    // Keep the folder the user is browsing on the left and show
+                    // the new directory in the freshly created right pane.
+                    window.toggleSplit(item.path);
+                } else {
+                    pane.engine.set_path(item.path);
+                }
+            } else {
+                pane.engine.set_path(item.path);
+            }
             showFiles();
         } else if (pane.engine.location_kind === "trash") {
             quickLook.showFor(item.path);
@@ -427,7 +440,7 @@ ApplicationWindow {
         activePane = pane1Loader.item;
     }
 
-    function toggleSplit() {
+    function toggleSplit(seedPath) {
         if (window.activeView !== "files")
             return;
         if (splitView) {
@@ -436,7 +449,9 @@ ApplicationWindow {
             splitSeedPath = "";
             return;
         }
-        splitSeedPath = engine.location_kind === "dir" ? engine.current_path : core.user_dir("HOME");
+        splitSeedPath = (typeof seedPath === "string" && seedPath.length > 0)
+            ? seedPath
+            : (engine.location_kind === "dir" ? engine.current_path : core.user_dir("HOME"));
         splitView = true;
         seedSplit();
     }
@@ -767,7 +782,7 @@ ApplicationWindow {
     // Decorative background blobs (skipped in low-power mode).
     Item {
         anchors.fill: parent
-        visible: !theme.lowPower
+        visible: !theme.lowPower && theme.showBackgroundShapes
         Rectangle {
             width: 420; height: 220; radius: 200; x: -40; y: -50
             color: theme.primaryContainer
@@ -862,14 +877,19 @@ ApplicationWindow {
                 color: theme.surfaceContainer
                 readonly property bool canBack: engine.can_go_back || window.isAuxView || engine.is_searching_everywhere
                 readonly property bool canForward: engine.can_go_forward && !window.isAuxView && !engine.is_searching_everywhere
-                Layout.preferredWidth: canForward ? 82 : 44
-                Layout.minimumWidth: canForward ? 82 : 44
+                readonly property bool showBack: theme.toolbarOperations !== "hidden"
+                readonly property bool showForward: theme.toolbarOperations === "always"
+                    || (theme.toolbarOperations === "auto" && canForward)
+                visible: showBack || showForward
+                Layout.preferredWidth: (showBack && showForward) ? 82 : 44
+                Layout.minimumWidth: (showBack && showForward) ? 82 : 44
                 opacity: (canBack || canForward) ? 1.0 : 0.45
 
                 RowLayout {
                     anchors.centerIn: parent
                     spacing: 2
                     TopIconButton {
+                        visible: navChip.showBack
                         iconName: "caret-left"
                         systemIcon: "go-previous-symbolic"
                         enabled: navChip.canBack
@@ -886,7 +906,8 @@ ApplicationWindow {
                         }
                     }
                     TopIconButton {
-                        visible: navChip.canForward
+                        visible: navChip.showForward
+                        enabled: navChip.canForward
                         iconName: "caret-right"
                         systemIcon: "go-next-symbolic"
                         accessibleName: qsTr("Forward")
@@ -897,9 +918,10 @@ ApplicationWindow {
 
             Rectangle {
                 id: windowTabsChip
+                visible: theme.showNewTabButton || theme.showNewWindowButton
                 Layout.preferredHeight: 42
-                Layout.preferredWidth: 82
-                Layout.minimumWidth: 82
+                Layout.preferredWidth: (theme.showNewTabButton && theme.showNewWindowButton) ? 82 : 44
+                Layout.minimumWidth: Layout.preferredWidth
                 radius: theme.radiusFull
                 color: theme.surfaceContainer
 
@@ -908,6 +930,7 @@ ApplicationWindow {
                     spacing: 2
                     TopIconButton {
                         id: newTabToolbarButton
+                        visible: theme.showNewTabButton
                         iconName: "tabs"
                         systemIcon: "tab-new-symbolic"
                         accessibleName: qsTr("New tab (Ctrl+T)")
@@ -919,6 +942,7 @@ ApplicationWindow {
                     }
                     TopIconButton {
                         id: newWindowToolbarButton
+                        visible: theme.showNewWindowButton
                         iconName: "app-window"
                         systemIcon: "window-new-symbolic"
                         accessibleName: qsTr("New window (Ctrl+N)")
@@ -950,14 +974,15 @@ ApplicationWindow {
                 RowLayout {
                     anchors.fill: parent
                     anchors.leftMargin: 14
-                    anchors.rightMargin: 4
+                    anchors.rightMargin: 6
                     spacing: 8
-                    visible: window.isEditingPath
+                    visible: window.isEditingPath || (window.activeView === "files" && theme.pathBarMode === "text")
 
                     LoafIcon { name: "folder"; size: 16; color: theme.primary }
                     TextInput {
                         id: pathInput
                         Layout.fillWidth: true
+                        visible: window.isEditingPath
                         color: theme.textMain
                         font.pixelSize: theme.fs(13)
                         font.family: "monospace"
@@ -979,7 +1004,28 @@ ApplicationWindow {
                         }
                         onActiveFocusChanged: if (!activeFocus && window.isEditingPath) window.isEditingPath = false
                     }
-                    TopIconButton { iconName: "check"; accessibleName: qsTr("Go"); onClicked: window.commitPathEdit() }
+                    // Read-only path mirror for "text only" mode.
+                    Text {
+                        visible: !window.isEditingPath
+                        Layout.fillWidth: true
+                        text: window.activeView === "pc"
+                            ? "pc://"
+                            : (engine.location_kind === "dir" || engine.location_kind === "archive"
+                                ? engine.current_path : engine.location_kind + "://")
+                        color: theme.textMain
+                        font.pixelSize: theme.fs(13)
+                        font.family: "monospace"
+                        elide: Text.ElideMiddle
+                        verticalAlignment: Text.AlignVCenter
+                        Accessible.role: Accessible.StaticText
+                        Accessible.name: qsTr("Current location")
+                    }
+                    TopIconButton {
+                        visible: window.isEditingPath
+                        iconName: "check"
+                        accessibleName: qsTr("Go")
+                        onClicked: window.commitPathEdit()
+                    }
                 }
 
                 ListView {
@@ -990,7 +1036,7 @@ ApplicationWindow {
                     orientation: ListView.Horizontal
                     spacing: 4
                     clip: true
-                    visible: !window.isEditingPath && window.activeView === "files"
+                    visible: !window.isEditingPath && window.activeView === "files" && theme.pathBarMode !== "text"
                     model: JSON.parse(engine.breadcrumbs_json || "[]")
                     onCountChanged: Qt.callLater(positionViewAtEnd)
                     interactive: contentWidth > width
