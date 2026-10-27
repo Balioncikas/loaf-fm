@@ -123,43 +123,52 @@ Item {
         }
     }
 
+    function wp(key, fallback, isDarkTheme) {
+        if (!wallpaperData || typeof wallpaperData !== "object") return fallback;
+        if (isDarkTheme && wallpaperData.dark && wallpaperData.dark[key]) return wallpaperData.dark[key];
+        if (!isDarkTheme && wallpaperData.light && wallpaperData.light[key]) return wallpaperData.light[key];
+        if (isDarkTheme && wallpaperData[key]) return wallpaperData[key];
+        if (!isDarkTheme && wallpaperData["light_" + key]) return wallpaperData["light_" + key];
+        return fallback;
+    }
+
     readonly property var palettes: ({
         "wallpaper": {
-            darkBg: (wallpaperData && wallpaperData.background) ? wallpaperData.background : "#121214",
-            darkSurfaceLowest: (wallpaperData && wallpaperData.surface_container_lowest) ? wallpaperData.surface_container_lowest : ((wallpaperData && wallpaperData.background) ? wallpaperData.background : "#0d0e0f"),
-            darkSurfaceLow: (wallpaperData && wallpaperData.surface_container_low) ? wallpaperData.surface_container_low : ((wallpaperData && wallpaperData.surface_container) ? wallpaperData.surface_container : "#18191a"),
-            darkSurface: (wallpaperData && wallpaperData.surface_container) ? wallpaperData.surface_container : "#1e2021",
-            darkSurfaceHigh: (wallpaperData && wallpaperData.surface_container_high) ? wallpaperData.surface_container_high : "#282a2b",
-            darkSurfaceHighest: (wallpaperData && wallpaperData.surface_container_highest) ? wallpaperData.surface_container_highest : "#333537",
-            darkPrimary: (wallpaperData && wallpaperData.primary) ? wallpaperData.primary : "#cfc6ab",
-            darkFg: (wallpaperData && wallpaperData.on_primary) ? wallpaperData.on_primary : "#201b0a",
-            darkContainer: (wallpaperData && wallpaperData.primary_container) ? wallpaperData.primary_container : "#4c4732",
-            darkContainerFg: (wallpaperData && wallpaperData.on_primary_container) ? wallpaperData.on_primary_container : "#ece2c6",
-            darkSecondaryContainer: (wallpaperData && wallpaperData.secondary_container) ? wallpaperData.secondary_container : "#454336",
-            darkSecondaryContainerFg: (wallpaperData && wallpaperData.on_secondary_container) ? wallpaperData.on_secondary_container : "#ece2c6",
-            darkTertiaryContainer: (wallpaperData && wallpaperData.tertiary_container) ? wallpaperData.tertiary_container : "#524332",
-            darkTextMain: (wallpaperData && wallpaperData.on_surface) ? wallpaperData.on_surface : "#e4e2de",
-            darkTextMuted: (wallpaperData && wallpaperData.on_surface_variant) ? wallpaperData.on_surface_variant : "#c8c6c0",
-            darkOutline: (wallpaperData && wallpaperData.outline) ? wallpaperData.outline : "#92908a",
-            darkOutlineVariant: (wallpaperData && wallpaperData.outline_variant) ? wallpaperData.outline_variant : "#484742",
+            darkBg: wp("background", "#121214", true),
+            darkSurfaceLowest: wp("surface_container_lowest", "#0d0e0f", true),
+            darkSurfaceLow: wp("surface_container_low", "#18191a", true),
+            darkSurface: wp("surface_container", "#1e2021", true),
+            darkSurfaceHigh: wp("surface_container_high", "#282a2b", true),
+            darkSurfaceHighest: wp("surface_container_highest", "#333537", true),
+            darkPrimary: wp("primary", "#cfc6ab", true),
+            darkFg: wp("on_primary", "#201b0a", true),
+            darkContainer: wp("primary_container", "#4c4732", true),
+            darkContainerFg: wp("on_primary_container", "#ece2c6", true),
+            darkSecondaryContainer: wp("secondary_container", "#454336", true),
+            darkSecondaryContainerFg: wp("on_secondary_container", "#ece2c6", true),
+            darkTertiaryContainer: wp("tertiary_container", "#524332", true),
+            darkTextMain: wp("on_surface", "#e6e2dd", true),
+            darkTextMuted: wp("on_surface_variant", "#cac6c1", true),
+            darkOutline: wp("outline", "#92908a", true),
+            darkOutlineVariant: wp("outline_variant", "#484742", true),
 
-            lightBg: "#fef8f4",
-            lightSurfaceLowest: "#ffffff",
-            lightSurfaceLow: "#f9f2ec",
-            lightSurface: "#f3ece4",
-            lightSurfaceHigh: "#ede5dc",
-            lightSurfaceHighest: "#e7ded4",
-            lightPrimary: (wallpaperData && wallpaperData.inverse_primary) ? wallpaperData.inverse_primary : ((wallpaperData && wallpaperData.primary) ? wallpaperData.primary : "#655e48"),
-            lightFg: "#ffffff",
-            lightContainer: (wallpaperData && wallpaperData.primary_container) ? wallpaperData.primary_container : "#ece2c6",
-            lightContainerFg: (wallpaperData && wallpaperData.on_primary_container) ? wallpaperData.on_primary_container : "#201b0a",
-            lightSecondaryContainer: (wallpaperData && wallpaperData.secondary_container) ? wallpaperData.secondary_container : "#ece2c6",
-            lightSecondaryContainerFg: (wallpaperData && wallpaperData.on_secondary_container) ? wallpaperData.on_secondary_container : "#201b0a",
-            lightTertiaryContainer: (wallpaperData && wallpaperData.tertiary_container) ? wallpaperData.tertiary_container : "#f0ddd0",
-            lightTextMain: "#1d1c16",
-            lightTextMuted: "#494740",
-            lightOutline: "#7a7770",
-            lightOutlineVariant: "#cbc7be"
+            lightBg: wp("background", "#fcf8f4", false),
+            lightSurfaceLowest: wp("surface_container_lowest", "#ffffff", false),
+            lightSurfaceLow: wp("surface_container_low", "#f7f2ed", false),
+            lightSurface: wp("surface_container", "#f1ece6", false),
+            lightSurfaceHigh: wp("surface_container_high", "#ebe5df", false),
+            lightSurfaceHighest: wp("surface_container_highest", "#e5dfd8", false),
+            lightPrimary: wp("primary", "#655e48", false),
+            lightFg: wp("on_primary", "#ffffff", false),
+            lightContainer: wp("primary_container", "#ece2c6", false),
+            lightContainerFg: wp("on_primary_container", "#201b0a", false),
+            lightSecondaryContainer: wp("secondary_container", "#ece2cf", false),
+            lightSecondaryContainerFg: wp("on_secondary_container", "#201b0a", false),
+            lightTertiaryContainer: wp("tertiary_container", "#f0ddd0", false),
+            lightTextMain: wp("on_surface", "#1d1c16", false),
+            lightTextMuted: wp("on_surface_variant", "#525048", false),
+            lightOutline: wp("outline", "#7a7770", false),
+            lightOutlineVariant: wp("outline_variant", "#cbc7be", false)
         },
         "lavender": {
             darkBg: "#121214",
