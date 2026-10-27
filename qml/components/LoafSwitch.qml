@@ -49,13 +49,14 @@ Item {
 
     RowLayout {
         anchors.fill: parent
-        spacing: 10
+        spacing: root.label.length > 0 ? 10 : 0
 
         Text {
             text: root.label
+            visible: root.label.length > 0
             color: theme.textMain
             font.pixelSize: theme.fs(13)
-            Layout.fillWidth: true
+            Layout.fillWidth: root.label.length > 0
             elide: Text.ElideRight
         }
 

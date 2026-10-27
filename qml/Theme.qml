@@ -38,6 +38,12 @@ Item {
     property string contextMenuMode: "full" // "full", "minimal", "custom"
     property var disabledMenuItems: ({})
     property bool hideTrashWhenEmpty: true
+    property string toolbarOperations: "auto" // "auto", "always", "hidden" -- back/forward buttons
+    property bool showNewTabButton: true
+    property bool showNewWindowButton: true
+    property string pathBarMode: "chips" // "chips", "text"
+    property string openFolderMode: "current" // "current", "split", "tab"
+    property bool showBackgroundShapes: true
 
     // ---- performance / accessibility ---------------------------------------
     // "auto" turns low-power mode on when Qt renders without a GPU.
@@ -2085,6 +2091,24 @@ Item {
         }
         value = readSetting("hideTrashWhenEmpty");
         if (value.length > 0) hideTrashWhenEmpty = (value === "true");
+        value = readSetting("toolbarOperations");
+        if (value.length > 0) toolbarOperations = value;
+        value = readSetting("showNewTabButton");
+        if (value.length > 0) showNewTabButton = (value === "true");
+        value = readSetting("showNewWindowButton");
+        if (value.length > 0) showNewWindowButton = (value === "true");
+        // Migrate the old combined toggle (pre per-button setting).
+        value = readSetting("showNewTabWindowButtons");
+        if (value.length > 0 && readSetting("showNewTabButton").length === 0) {
+            showNewTabButton = (value === "true");
+            showNewWindowButton = (value === "true");
+        }
+        value = readSetting("pathBarMode");
+        if (value.length > 0) pathBarMode = value;
+        value = readSetting("openFolderMode");
+        if (value.length > 0) openFolderMode = value;
+        value = readSetting("showBackgroundShapes");
+        if (value.length > 0) showBackgroundShapes = (value !== "false");
         loaded = true;
     }
 
@@ -2125,4 +2149,10 @@ Item {
     onContextMenuModeChanged: writeSetting("contextMenuMode", contextMenuMode)
     onDisabledMenuItemsChanged: writeSetting("disabledMenuItems", JSON.stringify(disabledMenuItems))
     onHideTrashWhenEmptyChanged: writeSetting("hideTrashWhenEmpty", hideTrashWhenEmpty)
+    onToolbarOperationsChanged: writeSetting("toolbarOperations", toolbarOperations)
+    onShowNewTabButtonChanged: writeSetting("showNewTabButton", showNewTabButton ? "true" : "false")
+    onShowNewWindowButtonChanged: writeSetting("showNewWindowButton", showNewWindowButton ? "true" : "false")
+    onPathBarModeChanged: writeSetting("pathBarMode", pathBarMode)
+    onOpenFolderModeChanged: writeSetting("openFolderMode", openFolderMode)
+    onShowBackgroundShapesChanged: writeSetting("showBackgroundShapes", showBackgroundShapes ? "true" : "false")
 }

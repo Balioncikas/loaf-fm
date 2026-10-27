@@ -1,9 +1,10 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import app.loaf
 
 // LoafSegmented -- Material 3 segmented control.
-// options: [{ value, label, icon }]
+// options: [{ value, label, icon, shortLabel }]
 Item {
     id: root
 
@@ -15,8 +16,21 @@ Item {
     property var options: []
     property var value
     property string label: ""
+    property bool iconOnly: false
 
     signal selected(var value)
+
+    readonly property bool hasIcons: {
+        var opts = root.options || [];
+        if (opts.length === 0) return false;
+        for (var i = 0; i < opts.length; i++) {
+            if (!opts[i] || !opts[i].icon || String(opts[i].icon).length === 0) return false;
+        }
+        return true;
+    }
+
+    readonly property bool isCompact: (typeof settingsView !== "undefined" && settingsView.isCompact) || root.width < (root.options ? root.options.length * 68 : 150)
+    readonly property bool effectiveIconOnly: iconOnly || (hasIcons && isCompact)
 
     transform: Translate { id: segTranslate; y: 0 }
 
@@ -105,20 +119,29 @@ Item {
                         Layout.fillHeight: true
 
                         readonly property bool isCurrent: index === root.currentIndex
+                        readonly property bool hasIcon: !!(modelData && modelData.icon && String(modelData.icon).length > 0)
+                        readonly property bool isDisabled: !!(modelData && modelData.disabled)
+
+                        opacity: isDisabled ? 0.4 : 1.0
 
                         RowLayout {
                             anchors.centerIn: parent
-                            spacing: 6
+                            spacing: root.effectiveIconOnly ? 0 : 6
 
                             LoafIcon {
-                                visible: !!(modelData && modelData.icon && String(modelData.icon).length > 0)
-                                name: (modelData && modelData.icon) ? modelData.icon : ""
-                                size: 14
+                                visible: segItem.hasIcon
+                                name: segItem.hasIcon ? modelData.icon : ""
+                                size: root.effectiveIconOnly ? 16 : 14
                                 color: segItem.isCurrent ? theme.secondaryContainerFg : theme.textMuted
                             }
 
                             Text {
-                                text: (modelData && modelData.label) ? modelData.label : ""
+                                visible: !root.effectiveIconOnly && (modelData && modelData.label)
+                                text: {
+                                    if (!modelData) return "";
+                                    if (root.isCompact && modelData.shortLabel) return modelData.shortLabel;
+                                    return modelData.label || "";
+                                }
                                 color: segItem.isCurrent ? theme.secondaryContainerFg : theme.textMuted
                                 font.pixelSize: theme.fs(12)
                                 font.bold: segItem.isCurrent
@@ -126,12 +149,20 @@ Item {
                         }
 
                         MouseArea {
+                            id: segMouse
                             anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
+                            enabled: !segItem.isDisabled
+                            hoverEnabled: !segItem.isDisabled
+                            cursorShape: segItem.isDisabled ? Qt.ArrowCursor : Qt.PointingHandCursor
+                            ToolTip.visible: segMouse.containsMouse && root.effectiveIconOnly && !!(modelData && modelData.label)
+                            ToolTip.text: (modelData && modelData.label) ? modelData.label : ""
+                            ToolTip.delay: 350
+
                             onClicked: {
-                                root.value = modelData.value;
-                                root.selected(modelData.value);
+                                if (!segItem.isDisabled) {
+                                    root.value = modelData.value;
+                                    root.selected(modelData.value);
+                                }
                             }
                         }
                     }
