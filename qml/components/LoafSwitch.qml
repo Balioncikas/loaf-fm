@@ -47,6 +47,18 @@ Item {
         root.opacity = 1.0;
     }
 
+    // Soft hover halo, revealed when the pointer is over the switch.
+    Rectangle {
+        anchors.fill: track
+        anchors.margins: -5
+        radius: theme.radiusFull
+        color: theme.primary
+        opacity: switchMouse.containsMouse ? (root.checked ? 0.16 : 0.09) : 0.0
+        visible: opacity > 0.01
+
+        Behavior on opacity { enabled: theme.animate; NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+    }
+
     RowLayout {
         anchors.fill: parent
         spacing: root.label.length > 0 ? 10 : 0
@@ -68,17 +80,18 @@ Item {
             radius: theme.radiusFull
             color: root.checked ? theme.primary : theme.surfaceContainerHighest
             border.width: root.checked ? 0 : 1
-            border.color: theme.outline
+            border.color: switchMouse.containsMouse && !root.checked ? theme.primary : theme.outline
 
             Behavior on color { enabled: theme.animate; ColorAnimation { duration: 140 } }
             Behavior on border.width { enabled: theme.animate; NumberAnimation { duration: 140 } }
+            Behavior on border.color { enabled: theme.animate; ColorAnimation { duration: 140 } }
 
             Rectangle {
                 id: thumb
                 height: width
                 radius: width / 2
                 y: (track.height - height) / 2
-                width: switchMouse.pressed ? 24 : 18
+                width: switchMouse.pressed ? 24 : (switchMouse.containsMouse ? 20 : 18)
                 x: root.checked ? (track.width - width - 4) : 4
                 color: root.checked ? theme.primaryFg : theme.outline
 
