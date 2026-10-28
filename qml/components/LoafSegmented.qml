@@ -124,40 +124,51 @@ Item {
 
                         opacity: isDisabled ? 0.4 : 1.0
 
-                        // Individual pill hover and press feedback.
-                        Rectangle {
+                        // Animate the entire pill content wrapper with a spring on hover and press
+                        Item {
+                            id: contentWrapper
                             anchors.fill: parent
-                            anchors.margins: 3
-                            radius: theme.radiusFull
-                            color: segItem.isCurrent ? theme.secondaryContainer : theme.surfaceContainerHighest
-                            opacity: segMouse.pressed ? 0.85 : (segMouse.containsMouse ? 1.0 : 0.0)
-                            scale: segMouse.pressed ? 0.96 : (segMouse.containsMouse ? 1.02 : 1.0)
+                            scale: segMouse.pressed ? 0.93 : (segMouse.containsMouse ? 1.05 : 1.0)
 
-                            Behavior on opacity { enabled: theme.animate; NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
-                            Behavior on scale { enabled: theme.animate; SpringAnimation { spring: 4; damping: 0.35 } }
-                        }
+                            Behavior on scale { enabled: theme.animate; SpringAnimation { spring: 4.5; damping: 0.3 } }
 
-                        RowLayout {
-                            anchors.centerIn: parent
-                            spacing: root.effectiveIconOnly ? 0 : 6
+                            // Hover pill highlight
+                            Rectangle {
+                                anchors.fill: parent
+                                anchors.margins: 3
+                                radius: theme.radiusFull
+                                color: theme.secondaryContainer
+                                opacity: segItem.isCurrent ? 0.0 : (segMouse.pressed ? 0.35 : (segMouse.containsMouse ? 0.18 : 0.0))
 
-                            LoafIcon {
-                                visible: segItem.hasIcon
-                                name: segItem.hasIcon ? modelData.icon : ""
-                                size: root.effectiveIconOnly ? 16 : 14
-                                color: segItem.isCurrent ? theme.secondaryContainerFg : theme.textMuted
+                                Behavior on opacity { enabled: theme.animate; NumberAnimation { duration: 150 } }
                             }
 
-                            Text {
-                                visible: !root.effectiveIconOnly && (modelData && modelData.label)
-                                text: {
-                                    if (!modelData) return "";
-                                    if (root.isCompact && modelData.shortLabel) return modelData.shortLabel;
-                                    return modelData.label || "";
+                            RowLayout {
+                                anchors.centerIn: parent
+                                spacing: root.effectiveIconOnly ? 0 : 6
+
+                                LoafIcon {
+                                    visible: segItem.hasIcon
+                                    name: segItem.hasIcon ? modelData.icon : ""
+                                    size: root.effectiveIconOnly ? 16 : 14
+                                    color: segItem.isCurrent ? theme.secondaryContainerFg : (segMouse.containsMouse ? theme.textMain : theme.textMuted)
+
+                                    Behavior on color { enabled: theme.animate; ColorAnimation { duration: 140 } }
                                 }
-                                color: segItem.isCurrent ? theme.secondaryContainerFg : theme.textMuted
-                                font.pixelSize: theme.fs(12)
-                                font.bold: segItem.isCurrent
+
+                                Text {
+                                    visible: !root.effectiveIconOnly && (modelData && modelData.label)
+                                    text: {
+                                        if (!modelData) return "";
+                                        if (root.isCompact && modelData.shortLabel) return modelData.shortLabel;
+                                        return modelData.label || "";
+                                    }
+                                    color: segItem.isCurrent ? theme.secondaryContainerFg : (segMouse.containsMouse ? theme.textMain : theme.textMuted)
+                                    font.pixelSize: theme.fs(12)
+                                    font.bold: segItem.isCurrent
+
+                                    Behavior on color { enabled: theme.animate; ColorAnimation { duration: 140 } }
+                                }
                             }
                         }
 

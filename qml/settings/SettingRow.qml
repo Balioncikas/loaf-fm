@@ -36,11 +36,29 @@ RowLayout {
             Layout.preferredHeight: 24
             Layout.alignment: Qt.AlignVCenter
 
-            LoafIcon {
+            Item {
+                id: iconWrapper
                 anchors.centerIn: parent
-                name: root.icon
-                size: root.isCompact ? 18 : 20
-                color: theme.primary
+                width: parent.width
+                height: parent.height
+
+                LoafIcon {
+                    id: rowIcon
+                    anchors.centerIn: parent
+                    name: root.icon
+                    size: root.isCompact ? 18 : 20
+                    color: theme.primary
+                    scale: rowMouse.containsMouse ? 1.15 : 1.0
+
+                    Behavior on scale { enabled: theme.animate; SpringAnimation { spring: 5; damping: 0.35 } }
+                }
+
+                MouseArea {
+                    id: rowMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    acceptedButtons: Qt.NoButton
+                }
             }
         }
 
