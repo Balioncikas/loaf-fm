@@ -367,7 +367,7 @@ pub struct CoreRust {
 impl Default for CoreRust {
     fn default() -> Self {
         Self {
-            is_dark: true,
+            is_dark: theme::detect_system_dark_mode(),
             wallpaper_colors_json: QString::from(&*theme::read_wallpaper_colors()),
             hostname: QString::from(&*theme::read_system_hostname()),
             device_type: QString::from(theme::detect_device_type()),
@@ -787,6 +787,7 @@ impl qobject::LoafCore {
     }
 
     pub fn reload_wallpaper_colors(mut self: Pin<&mut Self>) -> bool {
+        icons::reload_system_theme();
         let Some((_, content, _)) = theme::read_wallpaper_colors_source() else { return false };
         if content == self.wallpaper_colors_json().to_string() {
             return false;
@@ -2502,6 +2503,43 @@ impl cxx_qt::Initialize for qobject::LoafCore {
             }
         }
         self.as_mut().rust_mut().color_watcher = cw;
+
+        // Monitor real-time system color-scheme changes (desktop portal & gsettings)
+        let t_portal = self.qt_thread();
+        std::thread::Builder::new()
+            .name("loaf-theme-monitor".into())
+            .spawn(move || {
+                // Monitor XDG desktop portal SettingChanged signal
+                if let Ok(mut child) = std::process::Command::new("gdbus")
+                    .args([
+                        "monitor",
+                        "--session",
+                        "--dest",
+                        "org.freedesktop.portal.Desktop",
+                        "--object-path",
+                        "/org/freedesktop/portal/desktop",
+                    ])
+                    .stdout(std::process::Stdio::piped())
+                    .stderr(std::process::Stdio::null())
+                    .spawn()
+                {
+                    use std::io::{BufRead, BufReader};
+                    if let Some(stdout) = child.stdout.take() {
+                        let reader = BufReader::new(stdout);
+                        for line in reader.lines().map_while(Result::ok) {
+                            if line.contains("color-scheme") || line.contains("SettingChanged") {
+                                let dark = theme::detect_system_dark_mode();
+                                let _ = t_portal.queue(move |mut core| {
+                                    if *core.is_dark() != dark {
+                                        core.as_mut().set_is_dark(dark);
+                                    }
+                                });
+                            }
+                        }
+                    }
+                }
+            })
+            .ok();
     }
 }
 

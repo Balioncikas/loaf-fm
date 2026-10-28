@@ -21,7 +21,7 @@ ColumnLayout {
     }
 
     readonly property bool matchTheme: matches("theme appearance light dark auto mode color scheme")
-    readonly property bool matchOpacity: matches("background opacity transparency translucent translucency frosted blur appearance")
+    readonly property bool matchOpacity: matches("background opacity panel backing transparency translucent translucency frosted blur appearance")
     readonly property bool matchPalette: matches("theme palette accent colors wallpaper catppuccin nord tokyonight gruvbox rosepine amber lavender violet ricing")
     readonly property bool matchIconStyle: matches("icon style vector phosphor system adwaita desktop theme custom installed papirus breeze")
     readonly property bool matchIconWeight: matches("phosphor weight variant thin light regular bold fill duotone stroke thickness")
@@ -67,11 +67,11 @@ ColumnLayout {
             title: qsTr("Background opacity")
             subtitle: theme.lowPower
                 ? qsTr("Disabled in low-power mode")
-                : qsTr("Controls surface translucency. Blur is supplied by your desktop compositor.")
+                : qsTr("Fades the window itself so the desktop shows through margins and gaps")
 
             LoafSlider {
                 Layout.preferredWidth: (typeof settingsView !== "undefined" && settingsView.isCompact) ? 170 : 260
-                from: 0.5
+                from: 0.0
                 to: 1.0
                 stepSize: 0.01
                 value: theme.backgroundOpacity
@@ -79,6 +79,29 @@ ColumnLayout {
                 formatPercent: true
                 accessibleName: qsTr("Background opacity")
                 onMoved: function(v) { theme.backgroundOpacity = v; }
+            }
+        }
+
+        SettingDivider { visible: root.matchOpacity }
+
+        SettingRow {
+            visible: root.matchOpacity
+            icon: "square-half"
+            title: qsTr("Panel backing opacity")
+            subtitle: theme.lowPower
+                ? qsTr("Disabled in low-power mode")
+                : qsTr("Fades file panes, sidebar and cards while keeping text and icons solid")
+
+            LoafSlider {
+                Layout.preferredWidth: (typeof settingsView !== "undefined" && settingsView.isCompact) ? 170 : 260
+                from: 0.0
+                to: 1.0
+                stepSize: 0.01
+                value: theme.panelOpacity
+                enabled: !theme.lowPower
+                formatPercent: true
+                accessibleName: qsTr("Panel backing opacity")
+                onMoved: function(v) { theme.panelOpacity = v; }
             }
         }
     }

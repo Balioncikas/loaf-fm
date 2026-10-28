@@ -827,7 +827,7 @@ Item {
                     parent: gridView.contentItem
                     z: 100
                     visible: false
-                    color: Qt.rgba(theme.primary.r, theme.primary.g, theme.primary.b, theme.isDark ? 0.22 : 0.16)
+                    color: theme.selectionBox
                     border.color: theme.primary
                     border.width: 1.5
                     radius: theme.radiusM
@@ -1044,7 +1044,7 @@ Item {
                                     id: thumbMask
                                     anchors.fill: parent
                                     radius: theme.radiusM
-                                    color: "white"
+                                    color: theme.surfaceContainerLowest
                                     visible: false
                                     layer.enabled: card.thumbable && theme.showThumbnails && !theme.lowPower
                                 }

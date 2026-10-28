@@ -37,6 +37,8 @@ Rectangle {
 
     radius: theme.radiusXl
     color: theme.backdropSurface(theme.surfaceContainer)
+    border.width: 1
+    border.color: theme.outlineVariant
     clip: true
     implicitWidth: expanded ? 200 : 68
     Behavior on implicitWidth { enabled: theme.animate; NumberAnimation { duration: 230; easing.type: Easing.OutCubic } }

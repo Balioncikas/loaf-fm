@@ -300,8 +300,23 @@ pub fn installed_themes() -> Vec<(String, String)> {
     out
 }
 
+static SYSTEM_THEME: Mutex<Option<String>> = Mutex::new(None);
+
+pub fn reload_system_theme() {
+    *lock(&SYSTEM_THEME) = None;
+}
+
 /// The desktop's icon theme name.
 pub fn system_theme() -> String {
+    if let Some(t) = lock(&SYSTEM_THEME).as_ref() {
+        return t.clone();
+    }
+    let t = detect_system_theme();
+    *lock(&SYSTEM_THEME) = Some(t.clone());
+    t
+}
+
+fn detect_system_theme() -> String {
     if let Ok(t) = std::env::var("LOAF_ICON_THEME") {
         if !t.is_empty() {
             return t;

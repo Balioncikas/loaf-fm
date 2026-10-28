@@ -26,8 +26,25 @@ Item {
                 check(theme.textMain.a === 1 && theme.primary.a === 1
                       && theme.surfaceContainer.a === 1,
                       "Foreground or popup colors became translucent");
-                check(theme.backdropSurface(theme.surfaceContainerLow).a < 0.2,
-                      "Inset backgrounds obscure the desktop");
+                check(Math.abs(theme.backdropSurface(theme.surfaceContainerLow).a - 0.65) < 0.01,
+                      "Inset backgrounds should default to panelOpacity (0.65)");
+                theme.panelOpacity = 0.45;
+                check(Math.abs(theme.backdropSurface(theme.surfaceContainerLow).a - 0.45) < 0.01,
+                      "Changing panelOpacity should update inset surfaces");
+                theme.panelOpacity = 0.65;
+                theme.backgroundOpacity = 0.5;
+                // The window's clear color is written into a premultiplied
+                // buffer, so its RGB has to be scaled by the alpha as well.
+                check(Math.abs(theme.windowBackground.r - theme.background.r * 0.5) < 0.01
+                      && Math.abs(theme.windowBackground.a - 0.5) < 0.01,
+                      "Window clear color is not premultiplied");
+                theme.backgroundOpacity = 0.0;
+                check(theme.windowBackground.a === 0
+                      && theme.windowBackground.r === 0,
+                      "0% opacity left a veil over the desktop");
+                check(Math.abs(theme.backdropSurface(theme.surfaceContainerLow).a - 0.65) < 0.01,
+                      "0% window opacity should not drop panels below panelOpacity");
+                theme.backgroundOpacity = 0.78;
                 theme.lowPowerSetting = "on";
                 check(theme.windowBackground.a === 1
                       && theme.backdropSurface(theme.surfaceContainerLow).a === 1,

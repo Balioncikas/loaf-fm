@@ -1,9 +1,15 @@
 # Background opacity
 
-Open **Settings → Interface → Background opacity** to choose between 50% and
+Open **Settings → Interface → Background opacity** to choose between 0% and
 100%. The default is 100% (solid). Text, icons, menus, dialogs and selection
 colors remain opaque. Low-power mode temporarily restores solid backgrounds
 without losing the saved opacity preference.
+
+Opacity fades the window itself, so at low values the wallpaper shows through
+the margins, gaps and empty space. Surfaces that carry text — the file panes,
+the sidebar and settings cards — keep a minimum backing (65% of their surface
+color), because labels drawn straight onto a wallpaper cannot stay readable in
+both light and dark mode. That floor is `containerAlphaFloor` in `Theme.qml`.
 
 Background blur is supplied by your desktop compositor. Enable blur for Loaf
 in your desktop effects or compositor rules. Loaf's Wayland app ID is `loaf`.

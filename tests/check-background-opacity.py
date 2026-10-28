@@ -13,7 +13,7 @@ def main():
     root = Path(__file__).resolve().parents[1]
     binary = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else root / "target/debug/loaf"
     cases = [(None, 1), ("0.78", 0.78), ("garbage", 1), ("", 1),
-             ("   ", 1), ("NaN", 1), ("Infinity", 1), ("-1", 0.5), ("2", 1)]
+             ("   ", 1), ("NaN", 1), ("Infinity", 1), ("-1", 0), ("2", 1)]
     for value, expected in cases:
         with tempfile.TemporaryDirectory(prefix="loaf-opacity-") as directory:
             config = Path(directory) / "loaf/config.json"

@@ -5,18 +5,41 @@ Item {
     visible: false
 
     property string themeMode: "auto" // "auto", "light", "dark"
+
+    // How much of the desktop shows through the window itself.
     property real backgroundOpacity: 1.0
+    // How solid the surfaces drawn on top of it are: file panes, the sidebar
+    // and settings cards. Text, icons, menus and dialogs stay out of this, so
+    // this only fades the backing behind them.
+    property real panelOpacity: 0.65
+
     readonly property real effectiveBackgroundOpacity: lowPower ? 1.0
-        : (isFinite(backgroundOpacity) ? Math.max(0.5, Math.min(1.0, backgroundOpacity)) : 1.0)
+        : (isFinite(backgroundOpacity) ? Math.max(0.0, Math.min(1.0, backgroundOpacity)) : 1.0)
+    readonly property real effectivePanelOpacity: lowPower ? 1.0
+        : (isFinite(panelOpacity) ? Math.max(0.0, Math.min(1.0, panelOpacity)) : 1.0)
 
     // Only large background surfaces use alpha. Foregrounds and popup surfaces
     // retain their palette colors, so text, icons and dialogs remain opaque.
-    readonly property color windowBackground: Qt.rgba(background.r, background.g, background.b, effectiveBackgroundOpacity)
+    //
+    // The window's clear color goes straight into the premultiplied Wayland
+    // buffer, so its RGB must already be premultiplied by the alpha. A plain
+    // Qt.rgba(c, a) with a < 1 writes un-premultiplied RGB into the buffer and
+    // the compositor adds it on top of the wallpaper — that is what turned a
+    // fully transparent window into a white veil in light mode.
+    readonly property color windowBackground: {
+        var a = effectiveBackgroundOpacity;
+        return Qt.rgba(background.r * a, background.g * a, background.b * a, a);
+    }
+
+    // Panels are drawn over the window, so what reaches the screen is
+    // `panelOpacity` of the panel color over whatever the window alpha let
+    // through. At 0% a panel is as clear as the desktop behind it; at 100% it is
+    // solid even when the window is not. The default keeps labels readable on a
+    // wallpaper without hiding it.
     function backdropSurface(color) {
-        // A light tint above the window preserves surface hierarchy without
-        // stacking several nearly opaque backgrounds over the desktop.
-        var alpha = effectiveBackgroundOpacity < 1.0 ? 0.16 : 1.0;
-        return Qt.rgba(color.r, color.g, color.b, alpha);
+        if (effectivePanelOpacity >= 1.0)
+            return color;
+        return Qt.rgba(color.r, color.g, color.b, effectivePanelOpacity);
     }
     property string accentName: "wallpaper" // "wallpaper", "lavender", "amber", "catppuccin", "nord", "tokyonight", "gruvbox", "rosepine"
     property string iconSource: "phosphor" // "phosphor", "system", "adwaita" or "custom"
@@ -119,7 +142,7 @@ Item {
     readonly property bool isDark: themeMode === "dark" ? true
         : (themeMode === "light" ? false
         : ((typeof core !== "undefined" && core && typeof core.is_dark === "boolean") ? core.is_dark
-        : ((Application.styleHints && Application.styleHints.colorScheme === Qt.Light) ? false : true)))
+        : false))
 
     readonly property var wallpaperData: {
         try {
@@ -129,43 +152,52 @@ Item {
         }
     }
 
+    function wp(key, fallback, isDarkTheme) {
+        if (!wallpaperData || typeof wallpaperData !== "object") return fallback;
+        if (isDarkTheme && wallpaperData.dark && wallpaperData.dark[key]) return wallpaperData.dark[key];
+        if (!isDarkTheme && wallpaperData.light && wallpaperData.light[key]) return wallpaperData.light[key];
+        if (isDarkTheme && wallpaperData[key]) return wallpaperData[key];
+        if (!isDarkTheme && wallpaperData["light_" + key]) return wallpaperData["light_" + key];
+        return fallback;
+    }
+
     readonly property var palettes: ({
         "wallpaper": {
-            darkBg: (wallpaperData && wallpaperData.background) ? wallpaperData.background : "#121214",
-            darkSurfaceLowest: (wallpaperData && wallpaperData.surface_container_lowest) ? wallpaperData.surface_container_lowest : ((wallpaperData && wallpaperData.background) ? wallpaperData.background : "#0d0e0f"),
-            darkSurfaceLow: (wallpaperData && wallpaperData.surface_container_low) ? wallpaperData.surface_container_low : ((wallpaperData && wallpaperData.surface_container) ? wallpaperData.surface_container : "#18191a"),
-            darkSurface: (wallpaperData && wallpaperData.surface_container) ? wallpaperData.surface_container : "#1e2021",
-            darkSurfaceHigh: (wallpaperData && wallpaperData.surface_container_high) ? wallpaperData.surface_container_high : "#282a2b",
-            darkSurfaceHighest: (wallpaperData && wallpaperData.surface_container_highest) ? wallpaperData.surface_container_highest : "#333537",
-            darkPrimary: (wallpaperData && wallpaperData.primary) ? wallpaperData.primary : "#cfc6ab",
-            darkFg: (wallpaperData && wallpaperData.on_primary) ? wallpaperData.on_primary : "#201b0a",
-            darkContainer: (wallpaperData && wallpaperData.primary_container) ? wallpaperData.primary_container : "#4c4732",
-            darkContainerFg: (wallpaperData && wallpaperData.on_primary_container) ? wallpaperData.on_primary_container : "#ece2c6",
-            darkSecondaryContainer: (wallpaperData && wallpaperData.secondary_container) ? wallpaperData.secondary_container : "#454336",
-            darkSecondaryContainerFg: (wallpaperData && wallpaperData.on_secondary_container) ? wallpaperData.on_secondary_container : "#ece2c6",
-            darkTertiaryContainer: (wallpaperData && wallpaperData.tertiary_container) ? wallpaperData.tertiary_container : "#524332",
-            darkTextMain: (wallpaperData && wallpaperData.on_surface) ? wallpaperData.on_surface : "#e4e2de",
-            darkTextMuted: (wallpaperData && wallpaperData.on_surface_variant) ? wallpaperData.on_surface_variant : "#c8c6c0",
-            darkOutline: (wallpaperData && wallpaperData.outline) ? wallpaperData.outline : "#92908a",
-            darkOutlineVariant: (wallpaperData && wallpaperData.outline_variant) ? wallpaperData.outline_variant : "#484742",
+            darkBg: wp("background", "#121214", true),
+            darkSurfaceLowest: wp("surface_container_lowest", "#0d0e0f", true),
+            darkSurfaceLow: wp("surface_container_low", "#18191a", true),
+            darkSurface: wp("surface_container", "#1e2021", true),
+            darkSurfaceHigh: wp("surface_container_high", "#282a2b", true),
+            darkSurfaceHighest: wp("surface_container_highest", "#333537", true),
+            darkPrimary: wp("primary", "#cfc6ab", true),
+            darkFg: wp("on_primary", "#201b0a", true),
+            darkContainer: wp("primary_container", "#4c4732", true),
+            darkContainerFg: wp("on_primary_container", "#ece2c6", true),
+            darkSecondaryContainer: wp("secondary_container", "#454336", true),
+            darkSecondaryContainerFg: wp("on_secondary_container", "#ece2c6", true),
+            darkTertiaryContainer: wp("tertiary_container", "#524332", true),
+            darkTextMain: wp("on_surface", "#e6e2dd", true),
+            darkTextMuted: wp("on_surface_variant", "#cac6c1", true),
+            darkOutline: wp("outline", "#92908a", true),
+            darkOutlineVariant: wp("outline_variant", "#484742", true),
 
-            lightBg: "#fef8f4",
-            lightSurfaceLowest: "#ffffff",
-            lightSurfaceLow: "#f9f2ec",
-            lightSurface: "#f3ece4",
-            lightSurfaceHigh: "#ede5dc",
-            lightSurfaceHighest: "#e7ded4",
-            lightPrimary: (wallpaperData && wallpaperData.inverse_primary) ? wallpaperData.inverse_primary : ((wallpaperData && wallpaperData.primary) ? wallpaperData.primary : "#655e48"),
-            lightFg: "#ffffff",
-            lightContainer: (wallpaperData && wallpaperData.primary_container) ? wallpaperData.primary_container : "#ece2c6",
-            lightContainerFg: (wallpaperData && wallpaperData.on_primary_container) ? wallpaperData.on_primary_container : "#201b0a",
-            lightSecondaryContainer: (wallpaperData && wallpaperData.secondary_container) ? wallpaperData.secondary_container : "#ece2c6",
-            lightSecondaryContainerFg: (wallpaperData && wallpaperData.on_secondary_container) ? wallpaperData.on_secondary_container : "#201b0a",
-            lightTertiaryContainer: (wallpaperData && wallpaperData.tertiary_container) ? wallpaperData.tertiary_container : "#f0ddd0",
-            lightTextMain: "#1d1c16",
-            lightTextMuted: "#494740",
-            lightOutline: "#7a7770",
-            lightOutlineVariant: "#cbc7be"
+            lightBg: wp("background", "#fcf8f4", false),
+            lightSurfaceLowest: wp("surface_container_lowest", "#ffffff", false),
+            lightSurfaceLow: wp("surface_container_low", "#f7f2ed", false),
+            lightSurface: wp("surface_container", "#f1ece6", false),
+            lightSurfaceHigh: wp("surface_container_high", "#ebe5df", false),
+            lightSurfaceHighest: wp("surface_container_highest", "#e5dfd8", false),
+            lightPrimary: wp("primary", "#655e48", false),
+            lightFg: wp("on_primary", "#ffffff", false),
+            lightContainer: wp("primary_container", "#ece2c6", false),
+            lightContainerFg: wp("on_primary_container", "#201b0a", false),
+            lightSecondaryContainer: wp("secondary_container", "#ece2cf", false),
+            lightSecondaryContainerFg: wp("on_secondary_container", "#201b0a", false),
+            lightTertiaryContainer: wp("tertiary_container", "#f0ddd0", false),
+            lightTextMain: wp("on_surface", "#1d1c16", false),
+            lightTextMuted: wp("on_surface_variant", "#525048", false),
+            lightOutline: wp("outline", "#7a7770", false),
+            lightOutlineVariant: wp("outline_variant", "#cbc7be", false)
         },
         "lavender": {
             darkBg: "#121214",
@@ -182,7 +214,7 @@ Item {
             darkSecondaryContainerFg: "#eaddff",
             darkTertiaryContainer: "#633b48",
             darkTextMain: "#e6e6e8",
-            darkTextMuted: "#cac4d0",
+            darkTextMuted: "#b2adb9",
             darkOutline: "#938f99",
             darkOutlineVariant: "#49454f",
 
@@ -197,10 +229,10 @@ Item {
             lightContainer: "#eaddff",
             lightContainerFg: "#210f47",
             lightSecondaryContainer: "#e8def8",
-            lightSecondaryContainerFg: "#210f47",
+            lightSecondaryContainerFg: "#1d192b",
             lightTertiaryContainer: "#ffd8e4",
             lightTextMain: "#1d1b20",
-            lightTextMuted: "#79747e",
+            lightTextMuted: "#5e5765",
             lightOutline: "#79747e",
             lightOutlineVariant: "#cac4d0"
         },
@@ -215,13 +247,13 @@ Item {
             darkFg: "#432c00",
             darkContainer: "#5e4100",
             darkContainerFg: "#ffdea7",
-            darkSecondaryContainer: "#423420",
+            darkSecondaryContainer: "#443a29",
             darkSecondaryContainerFg: "#ffdea7",
-            darkTertiaryContainer: "#593a20",
-            darkTextMain: "#f2ede8",
-            darkTextMuted: "#c8beaf",
-            darkOutline: "#8f8576",
-            darkOutlineVariant: "#443f38",
+            darkTertiaryContainer: "#52361c",
+            darkTextMain: "#f5ede4",
+            darkTextMuted: "#cbbfae",
+            darkOutline: "#958978",
+            darkOutlineVariant: "#484136",
 
             lightBg: "#fdf8f4",
             lightSurfaceLowest: "#ffffff",
@@ -233,50 +265,50 @@ Item {
             lightFg: "#ffffff",
             lightContainer: "#ffdea7",
             lightContainerFg: "#2a1800",
-            lightSecondaryContainer: "#fae7cb",
-            lightSecondaryContainerFg: "#432c00",
+            lightSecondaryContainer: "#f0dfc8",
+            lightSecondaryContainerFg: "#2f1e00",
             lightTertiaryContainer: "#ffdcc1",
             lightTextMain: "#221b14",
-            lightTextMuted: "#6b6256",
+            lightTextMuted: "#544b3f",
             lightOutline: "#867b6e",
-            lightOutlineVariant: "#d4c8ba"
+            lightOutlineVariant: "#c4b7a7"
         },
         "catppuccin": {
             darkBg: "#1e1e2e",
             darkSurfaceLowest: "#11111b",
             darkSurfaceLow: "#181825",
-            darkSurface: "#24273a",
+            darkSurface: "#24253a",
             darkSurfaceHigh: "#313244",
             darkSurfaceHighest: "#45475a",
             darkPrimary: "#cba6f7",
             darkFg: "#11111b",
             darkContainer: "#45475a",
             darkContainerFg: "#cdd6f4",
-            darkSecondaryContainer: "#36384d",
+            darkSecondaryContainer: "#313244",
             darkSecondaryContainerFg: "#89b4fa",
-            darkTertiaryContainer: "#5e3f53",
+            darkTertiaryContainer: "#453347",
             darkTextMain: "#cdd6f4",
             darkTextMuted: "#a6adc8",
             darkOutline: "#7f849c",
-            darkOutlineVariant: "#313244",
+            darkOutlineVariant: "#45475a",
 
             lightBg: "#eff1f5",
             lightSurfaceLowest: "#ffffff",
-            lightSurfaceLow: "#e6e9ef",
-            lightSurface: "#dce0e8",
-            lightSurfaceHigh: "#ccd0da",
-            lightSurfaceHighest: "#bcc0cc",
+            lightSurfaceLow: "#f5f6f8",
+            lightSurface: "#e6e9ef",
+            lightSurfaceHigh: "#dce0e8",
+            lightSurfaceHighest: "#ccd0da",
             lightPrimary: "#8839ef",
             lightFg: "#ffffff",
             lightContainer: "#dce0e8",
-            lightContainerFg: "#8839ef",
-            lightSecondaryContainer: "#d2d7e6",
-            lightSecondaryContainerFg: "#1e66f5",
-            lightTertiaryContainer: "#f4ccd4",
+            lightContainerFg: "#5c1db6",
+            lightSecondaryContainer: "#ccd0da",
+            lightSecondaryContainerFg: "#0c4ecf",
+            lightTertiaryContainer: "#e8c0cc",
             lightTextMain: "#4c4f69",
-            lightTextMuted: "#6c6f85",
-            lightOutline: "#9ca0b0",
-            lightOutlineVariant: "#ccd0da"
+            lightTextMuted: "#5c5f77",
+            lightOutline: "#8c8fa1",
+            lightOutlineVariant: "#bcc0cc"
         },
         "nord": {
             darkBg: "#2e3440",
@@ -286,34 +318,34 @@ Item {
             darkSurfaceHigh: "#3b4252",
             darkSurfaceHighest: "#434c5e",
             darkPrimary: "#88c0d0",
-            darkFg: "#2e3440",
+            darkFg: "#1f232a",
             darkContainer: "#434c5e",
             darkContainerFg: "#eceff4",
-            darkSecondaryContainer: "#3d4757",
-            darkSecondaryContainerFg: "#88c0d0",
-            darkTertiaryContainer: "#533a41",
+            darkSecondaryContainer: "#3b4252",
+            darkSecondaryContainerFg: "#8fbcbb",
+            darkTertiaryContainer: "#4c3a42",
             darkTextMain: "#eceff4",
-            darkTextMuted: "#d8dee9",
-            darkOutline: "#4c566a",
-            darkOutlineVariant: "#3b4252",
+            darkTextMuted: "#abb5c7",
+            darkOutline: "#616e88",
+            darkOutlineVariant: "#434c5e",
 
             lightBg: "#eceff4",
             lightSurfaceLowest: "#ffffff",
-            lightSurfaceLow: "#e5e9f0",
-            lightSurface: "#d8dee9",
-            lightSurfaceHigh: "#cbd3df",
-            lightSurfaceHighest: "#bcc6d5",
-            lightPrimary: "#5e81ac",
+            lightSurfaceLow: "#f4f6f9",
+            lightSurface: "#e5e9f0",
+            lightSurfaceHigh: "#d8dee9",
+            lightSurfaceHighest: "#cbd3df",
+            lightPrimary: "#3b608a",
             lightFg: "#ffffff",
             lightContainer: "#d8dee9",
             lightContainerFg: "#2e3440",
-            lightSecondaryContainer: "#d8e1eb",
-            lightSecondaryContainerFg: "#3b5b84",
-            lightTertiaryContainer: "#edd1ce",
+            lightSecondaryContainer: "#ccd5e2",
+            lightSecondaryContainerFg: "#234167",
+            lightTertiaryContainer: "#dfc5c5",
             lightTextMain: "#2e3440",
-            lightTextMuted: "#4c566a",
-            lightOutline: "#7d899e",
-            lightOutlineVariant: "#d8dee9"
+            lightTextMuted: "#434c5e",
+            lightOutline: "#6b778f",
+            lightOutlineVariant: "#c2cbda"
         },
         "tokyonight": {
             darkBg: "#1a1b26",
@@ -326,36 +358,36 @@ Item {
             darkFg: "#15161e",
             darkContainer: "#292e42",
             darkContainerFg: "#c0caf5",
-            darkSecondaryContainer: "#28334d",
+            darkSecondaryContainer: "#232c45",
             darkSecondaryContainerFg: "#7dcfff",
-            darkTertiaryContainer: "#522e3e",
+            darkTertiaryContainer: "#4a2c3d",
             darkTextMain: "#c0caf5",
-            darkTextMuted: "#9aa5ce",
+            darkTextMuted: "#8994bd",
             darkOutline: "#565f89",
-            darkOutlineVariant: "#24283b",
+            darkOutlineVariant: "#343b58",
 
-            lightBg: "#d5d6db",
+            lightBg: "#e6e7ed",
             lightSurfaceLowest: "#ffffff",
-            lightSurfaceLow: "#cbccd1",
-            lightSurface: "#c4c8da",
-            lightSurfaceHigh: "#b4b8cb",
-            lightSurfaceHighest: "#a4a8bc",
-            lightPrimary: "#3d59a1",
+            lightSurfaceLow: "#edeef3",
+            lightSurface: "#dfe0e8",
+            lightSurfaceHigh: "#d1d3de",
+            lightSurfaceHighest: "#c4c6d3",
+            lightPrimary: "#34548a",
             lightFg: "#ffffff",
-            lightContainer: "#c4c8da",
+            lightContainer: "#d1d3de",
             lightContainerFg: "#1a1b26",
-            lightSecondaryContainer: "#c5cce4",
-            lightSecondaryContainerFg: "#2e4580",
-            lightTertiaryContainer: "#e1bec6",
-            lightTextMain: "#343b58",
-            lightTextMuted: "#565a6e",
-            lightOutline: "#79809f",
-            lightOutlineVariant: "#c4c8da"
+            lightSecondaryContainer: "#c4cae0",
+            lightSecondaryContainerFg: "#192e59",
+            lightTertiaryContainer: "#dbb8c3",
+            lightTextMain: "#2e3347",
+            lightTextMuted: "#4e546e",
+            lightOutline: "#6d738f",
+            lightOutlineVariant: "#b6b9cb"
         },
         "gruvbox": {
             darkBg: "#282828",
-            darkSurfaceLowest: "#141617",
-            darkSurfaceLow: "#1d2021",
+            darkSurfaceLowest: "#1d2021",
+            darkSurfaceLow: "#222425",
             darkSurface: "#32302f",
             darkSurfaceHigh: "#3c3836",
             darkSurfaceHighest: "#504945",
@@ -363,68 +395,68 @@ Item {
             darkFg: "#1d2021",
             darkContainer: "#504945",
             darkContainerFg: "#fabd2f",
-            darkSecondaryContainer: "#453b30",
-            darkSecondaryContainerFg: "#fe8019",
-            darkTertiaryContainer: "#552825",
+            darkSecondaryContainer: "#3e3832",
+            darkSecondaryContainerFg: "#fadb7f",
+            darkTertiaryContainer: "#4c2c2a",
             darkTextMain: "#ebdbb2",
-            darkTextMuted: "#a89984",
+            darkTextMuted: "#bdae93",
             darkOutline: "#7c6f64",
-            darkOutlineVariant: "#3c3836",
+            darkOutlineVariant: "#48433f",
 
             lightBg: "#fbf1c7",
             lightSurfaceLowest: "#ffffff",
-            lightSurfaceLow: "#f2e5bc",
+            lightSurfaceLow: "#f6ebc1",
             lightSurface: "#ebdbb2",
             lightSurfaceHigh: "#d5c4a1",
             lightSurfaceHighest: "#bdae93",
-            lightPrimary: "#b57614",
+            lightPrimary: "#af3a03",
             lightFg: "#ffffff",
-            lightContainer: "#ebdbb2",
+            lightContainer: "#d5c4a1",
             lightContainerFg: "#282828",
-            lightSecondaryContainer: "#e5d4a8",
-            lightSecondaryContainerFg: "#8f3f05",
-            lightTertiaryContainer: "#ecc8b8",
+            lightSecondaryContainer: "#ddcdab",
+            lightSecondaryContainerFg: "#7c3504",
+            lightTertiaryContainer: "#e0b4a4",
             lightTextMain: "#282828",
-            lightTextMuted: "#7c6f64",
-            lightOutline: "#8a7b6b",
-            lightOutlineVariant: "#d5c4a1"
+            lightTextMuted: "#504945",
+            lightOutline: "#7c6f64",
+            lightOutlineVariant: "#bdae93"
         },
         "rosepine": {
             darkBg: "#191724",
-            darkSurfaceLowest: "#0f0e17",
-            darkSurfaceLow: "#14121e",
+            darkSurfaceLowest: "#110f1a",
+            darkSurfaceLow: "#151320",
             darkSurface: "#1f1d2e",
             darkSurfaceHigh: "#26233a",
             darkSurfaceHighest: "#393552",
             darkPrimary: "#ebbcba",
             darkFg: "#191724",
-            darkContainer: "#31748f",
+            darkContainer: "#393552",
             darkContainerFg: "#e0def4",
-            darkSecondaryContainer: "#2d283e",
+            darkSecondaryContainer: "#2a273f",
             darkSecondaryContainerFg: "#9ccfd8",
-            darkTertiaryContainer: "#492b3a",
+            darkTertiaryContainer: "#3e2b3d",
             darkTextMain: "#e0def4",
-            darkTextMuted: "#908caa",
+            darkTextMuted: "#a29eb8",
             darkOutline: "#6e6a86",
-            darkOutlineVariant: "#26233a",
+            darkOutlineVariant: "#38344e",
 
             lightBg: "#faf4ed",
             lightSurfaceLowest: "#ffffff",
-            lightSurfaceLow: "#f2e9de",
+            lightSurfaceLow: "#f6ede3",
             lightSurface: "#fffaf3",
-            lightSurfaceHigh: "#f2e9e1",
-            lightSurfaceHighest: "#dfdad9",
-            lightPrimary: "#d7827e",
+            lightSurfaceHigh: "#f2e9de",
+            lightSurfaceHighest: "#e4dcd0",
+            lightPrimary: "#b85854",
             lightFg: "#ffffff",
             lightContainer: "#f2e9de",
             lightContainerFg: "#575279",
-            lightSecondaryContainer: "#e9e3d9",
-            lightSecondaryContainerFg: "#286983",
-            lightTertiaryContainer: "#ecd1d7",
+            lightSecondaryContainer: "#e8dfd3",
+            lightSecondaryContainerFg: "#184f65",
+            lightTertiaryContainer: "#dfbebe",
             lightTextMain: "#575279",
-            lightTextMuted: "#797593",
-            lightOutline: "#8a8597",
-            lightOutlineVariant: "#dfdad9"
+            lightTextMuted: "#68637e",
+            lightOutline: "#797593",
+            lightOutlineVariant: "#d2c9bd"
         }
     })
 
@@ -1986,9 +2018,15 @@ Item {
     readonly property color hoverOverlay: isDark ? Qt.rgba(1.0, 1.0, 1.0, 0.08) : Qt.rgba(0.0, 0.0, 0.0, 0.06)
     readonly property color activeOverlay: isDark ? Qt.rgba(1.0, 1.0, 1.0, 0.14) : Qt.rgba(0.0, 0.0, 0.0, 0.10)
     readonly property color menuItemHover: isDark ? Qt.rgba(1.0, 1.0, 1.0, 0.09) : Qt.rgba(0.0, 0.0, 0.0, 0.05)
-    readonly property color danger: isDark ? "#f2b8b5" : "#ba1a1a"
-    readonly property color dangerContainer: isDark ? "#381e1e" : "#ffdad6"
-    readonly property color dangerFg: danger
+    readonly property color scrim: isDark ? Qt.rgba(0.0, 0.0, 0.0, 0.60) : Qt.rgba(0.0, 0.0, 0.0, 0.35)
+    readonly property color shadow: isDark ? Qt.rgba(0.0, 0.0, 0.0, 0.45) : Qt.rgba(0.0, 0.0, 0.0, 0.14)
+    readonly property color selectionBox: Qt.rgba(primary.r, primary.g, primary.b, isDark ? 0.24 : 0.16)
+    readonly property color syntaxString: isDark ? tertiaryContainer : primary
+    readonly property color syntaxNumber: isDark ? secondaryContainerFg : primary
+    readonly property color syntaxKeyword: primary
+    readonly property color danger: isDark ? "#ffb4ab" : "#ba1a1a"
+    readonly property color dangerContainer: isDark ? "#93000a" : "#ffdad6"
+    readonly property color dangerFg: isDark ? "#690005" : "#ffffff"
     readonly property color track: isDark ? activePalette.darkSurfaceHighest : activePalette.lightSurfaceHigh
     readonly property color borderSubtle: outlineVariant
     readonly property color separator: outlineVariant
@@ -2025,7 +2063,10 @@ Item {
         if (value.length > 0) themeMode = value;
         value = readSetting("backgroundOpacity");
         if (value.trim().length > 0 && isFinite(Number(value)))
-            backgroundOpacity = Math.max(0.5, Math.min(1.0, Number(value)));
+            backgroundOpacity = Math.max(0.0, Math.min(1.0, Number(value)));
+        value = readSetting("panelOpacity");
+        if (value.trim().length > 0 && isFinite(Number(value)))
+            panelOpacity = Math.max(0.0, Math.min(1.0, Number(value)));
         value = readSetting("accentName");
         if (value.length > 0) accentName = value;
         if (accentName === "wallpaper" && typeof core !== "undefined" && core)
@@ -2119,6 +2160,7 @@ Item {
 
     onThemeModeChanged: writeSetting("themeMode", themeMode)
     onBackgroundOpacityChanged: writeSetting("backgroundOpacity", backgroundOpacity)
+    onPanelOpacityChanged: writeSetting("panelOpacity", panelOpacity)
     onAccentNameChanged: {
         writeSetting("accentName", accentName);
         if (accentName === "wallpaper" && typeof core !== "undefined" && core)
