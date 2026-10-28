@@ -5,9 +5,18 @@ Item {
     visible: false
 
     property string themeMode: "auto" // "auto", "light", "dark"
+
+    // How much of the desktop shows through the window itself.
     property real backgroundOpacity: 1.0
+    // How solid the surfaces drawn on top of it are: file panes, the sidebar
+    // and settings cards. Text, icons, menus and dialogs stay out of this, so
+    // this only fades the backing behind them.
+    property real panelOpacity: 0.65
+
     readonly property real effectiveBackgroundOpacity: lowPower ? 1.0
         : (isFinite(backgroundOpacity) ? Math.max(0.0, Math.min(1.0, backgroundOpacity)) : 1.0)
+    readonly property real effectivePanelOpacity: lowPower ? 1.0
+        : (isFinite(panelOpacity) ? Math.max(0.0, Math.min(1.0, panelOpacity)) : 1.0)
 
     // Only large background surfaces use alpha. Foregrounds and popup surfaces
     // retain their palette colors, so text, icons and dialogs remain opaque.
@@ -21,20 +30,16 @@ Item {
         var a = effectiveBackgroundOpacity;
         return Qt.rgba(background.r * a, background.g * a, background.b * a, a);
     }
-    // Containers that carry text (file grid, sidebar, settings cards) never go
-    // fully clear. Below this alpha the wallpaper would sit directly behind the
-    // labels and, in light mode over a dark wallpaper, they stop being readable.
-    // The window itself, the gaps between containers and the area around them
-    // stay fully transparent, so the glass look survives.
-    readonly property real containerAlphaFloor: 0.65
+
+    // Panels are drawn over the window, so what reaches the screen is
+    // `panelOpacity` of the panel color over whatever the window alpha let
+    // through. At 0% a panel is as clear as the desktop behind it; at 100% it is
+    // solid even when the window is not. The default keeps labels readable on a
+    // wallpaper without hiding it.
     function backdropSurface(color) {
-        if (effectiveBackgroundOpacity >= 1.0)
+        if (effectivePanelOpacity >= 1.0)
             return color;
-        // Translucency is split between the window and its containers: the
-        // window alpha follows the slider from 0% and the container rides on
-        // top of it, never dropping below the readability floor.
-        var alpha = containerAlphaFloor + (1.0 - containerAlphaFloor) * effectiveBackgroundOpacity;
-        return Qt.rgba(color.r, color.g, color.b, alpha);
+        return Qt.rgba(color.r, color.g, color.b, effectivePanelOpacity);
     }
     property string accentName: "wallpaper" // "wallpaper", "lavender", "amber", "catppuccin", "nord", "tokyonight", "gruvbox", "rosepine"
     property string iconSource: "phosphor" // "phosphor", "system", "adwaita" or "custom"
@@ -2053,6 +2058,9 @@ Item {
         value = readSetting("backgroundOpacity");
         if (value.trim().length > 0 && isFinite(Number(value)))
             backgroundOpacity = Math.max(0.0, Math.min(1.0, Number(value)));
+        value = readSetting("panelOpacity");
+        if (value.trim().length > 0 && isFinite(Number(value)))
+            panelOpacity = Math.max(0.0, Math.min(1.0, Number(value)));
         value = readSetting("accentName");
         if (value.length > 0) accentName = value;
         if (accentName === "wallpaper" && typeof core !== "undefined" && core)
@@ -2128,6 +2136,7 @@ Item {
 
     onThemeModeChanged: writeSetting("themeMode", themeMode)
     onBackgroundOpacityChanged: writeSetting("backgroundOpacity", backgroundOpacity)
+    onPanelOpacityChanged: writeSetting("panelOpacity", panelOpacity)
     onAccentNameChanged: {
         writeSetting("accentName", accentName);
         if (accentName === "wallpaper" && typeof core !== "undefined" && core)

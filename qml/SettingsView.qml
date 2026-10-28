@@ -459,48 +459,44 @@ Item {
                             title: qsTr("Background opacity")
                             subtitle: theme.lowPower
                                 ? qsTr("Backgrounds stay solid in low-power mode")
-                                : qsTr("Keep text and icons solid. Blur depends on your desktop effects.")
+                                : qsTr("Fades the window itself so the desktop shows through margins and gaps.")
                             RowLayout {
                                 spacing: 12
-                                Slider {
-                                    id: backgroundOpacitySlider
-                                    Layout.preferredWidth: 120
-                                    implicitHeight: 36
+                                LoafSlider {
                                     from: 0.0
                                     to: 1.0
                                     stepSize: 0.01
                                     value: theme.backgroundOpacity
                                     enabled: !theme.lowPower
-                                    Accessible.name: qsTr("Background opacity")
+                                    label: qsTr("Background opacity")
                                     onMoved: theme.backgroundOpacity = value
-                                    background: Rectangle {
-                                        x: backgroundOpacitySlider.leftPadding
-                                        y: backgroundOpacitySlider.topPadding + (backgroundOpacitySlider.availableHeight - height) / 2
-                                        width: backgroundOpacitySlider.availableWidth
-                                        height: 6
-                                        radius: 3
-                                        color: theme.surfaceContainerHighest
-                                        Rectangle {
-                                            width: backgroundOpacitySlider.position * parent.width
-                                            x: backgroundOpacitySlider.mirrored ? parent.width - width : 0
-                                            height: parent.height
-                                            radius: parent.radius
-                                            color: theme.primary
-                                        }
-                                    }
-                                    handle: Rectangle {
-                                        x: backgroundOpacitySlider.leftPadding + backgroundOpacitySlider.visualPosition * (backgroundOpacitySlider.availableWidth - width)
-                                        y: backgroundOpacitySlider.topPadding + (backgroundOpacitySlider.availableHeight - height) / 2
-                                        implicitWidth: 18
-                                        implicitHeight: 24
-                                        radius: 6
-                                        color: theme.primary
-                                        border.width: backgroundOpacitySlider.activeFocus ? 2 : 0
-                                        border.color: theme.textMain
-                                    }
                                 }
                                 Text {
                                     text: Math.round(theme.effectiveBackgroundOpacity * 100) + "%"
+                                    color: theme.textMain
+                                    font.pixelSize: theme.fs(12)
+                                    Layout.minimumWidth: 38
+                                }
+                            }
+                        }
+                        SettingCard {
+                            visible: settingsView.searchQuery.length === 0 || settingsView.opacityMatch
+                            Layout.maximumWidth: contentScroll.availableWidth
+                            title: qsTr("Panel backing opacity")
+                            subtitle: qsTr("Fades file panes, sidebar and settings cards while keeping text and icons fully solid.")
+                            RowLayout {
+                                spacing: 12
+                                LoafSlider {
+                                    from: 0.0
+                                    to: 1.0
+                                    stepSize: 0.01
+                                    value: theme.panelOpacity
+                                    enabled: !theme.lowPower
+                                    label: qsTr("Panel backing opacity")
+                                    onMoved: theme.panelOpacity = value
+                                }
+                                Text {
+                                    text: Math.round(theme.effectivePanelOpacity * 100) + "%"
                                     color: theme.textMain
                                     font.pixelSize: theme.fs(12)
                                     Layout.minimumWidth: 38
