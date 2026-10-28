@@ -26,7 +26,8 @@ Item {
                 check(theme.textMain.a === 1 && theme.primary.a === 1
                       && theme.surfaceContainer.a === 1,
                       "Foreground or popup colors became translucent");
-                check(Math.abs(theme.backdropSurface(theme.surfaceContainerLow).a - 0.78 * 0.85) < 0.01,
+                check(Math.abs(theme.backdropSurface(theme.surfaceContainerLow).a
+                               - (theme.containerAlphaFloor + (1 - theme.containerAlphaFloor) * 0.78)) < 0.01,
                       "Inset backgrounds should scale with the window opacity");
                 theme.backgroundOpacity = 0.5;
                 // The window's clear color is written into a premultiplied
@@ -36,9 +37,11 @@ Item {
                       "Window clear color is not premultiplied");
                 theme.backgroundOpacity = 0.0;
                 check(theme.windowBackground.a === 0
-                      && theme.windowBackground.r === 0
-                      && theme.backdropSurface(theme.surfaceContainerLow).a === 0,
+                      && theme.windowBackground.r === 0,
                       "0% opacity left a veil over the desktop");
+                check(Math.abs(theme.backdropSurface(theme.surfaceContainerLow).a
+                               - theme.containerAlphaFloor) < 0.01,
+                      "0% opacity dropped text containers below the readability floor");
                 theme.backgroundOpacity = 0.78;
                 theme.lowPowerSetting = "on";
                 check(theme.windowBackground.a === 1

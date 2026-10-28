@@ -21,14 +21,19 @@ Item {
         var a = effectiveBackgroundOpacity;
         return Qt.rgba(background.r * a, background.g * a, background.b * a, a);
     }
+    // Containers that carry text (file grid, sidebar, settings cards) never go
+    // fully clear. Below this alpha the wallpaper would sit directly behind the
+    // labels and, in light mode over a dark wallpaper, they stop being readable.
+    // The window itself, the gaps between containers and the area around them
+    // stay fully transparent, so the glass look survives.
+    readonly property real containerAlphaFloor: 0.65
     function backdropSurface(color) {
         if (effectiveBackgroundOpacity >= 1.0)
             return color;
-        // Keep surfaces translucent in direct proportion to window opacity.
-        // At 0% opacity, the container surface becomes completely clear (alpha 0)
-        // just like a transparent terminal, so compositor blur and wallpaper show
-        // through without any artificial white/gray backing veil.
-        var alpha = effectiveBackgroundOpacity * 0.85;
+        // Translucency is split between the window and its containers: the
+        // window alpha follows the slider from 0% and the container rides on
+        // top of it, never dropping below the readability floor.
+        var alpha = containerAlphaFloor + (1.0 - containerAlphaFloor) * effectiveBackgroundOpacity;
         return Qt.rgba(color.r, color.g, color.b, alpha);
     }
     property string accentName: "wallpaper" // "wallpaper", "lavender", "amber", "catppuccin", "nord", "tokyonight", "gruvbox", "rosepine"
