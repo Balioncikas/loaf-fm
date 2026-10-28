@@ -124,6 +124,19 @@ Item {
 
                         opacity: isDisabled ? 0.4 : 1.0
 
+                        // Individual pill hover and press feedback.
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.margins: 3
+                            radius: theme.radiusFull
+                            color: segItem.isCurrent ? theme.secondaryContainer : theme.surfaceContainerHighest
+                            opacity: segMouse.pressed ? 0.85 : (segMouse.containsMouse ? 1.0 : 0.0)
+                            scale: segMouse.pressed ? 0.96 : (segMouse.containsMouse ? 1.02 : 1.0)
+
+                            Behavior on opacity { enabled: theme.animate; NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+                            Behavior on scale { enabled: theme.animate; SpringAnimation { spring: 4; damping: 0.35 } }
+                        }
+
                         RowLayout {
                             anchors.centerIn: parent
                             spacing: root.effectiveIconOnly ? 0 : 6
