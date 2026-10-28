@@ -322,8 +322,9 @@ Item {
             ? dragManager.asCopy
             : ((drop.proposedAction === Qt.CopyAction) || !(drop.supportedActions & Qt.MoveAction));
         drop.accept(asCopy ? Qt.CopyAction : Qt.MoveAction);
-        if (dragManager.isRmb && mouseItem) {
-            var pt = mouseItem.mapToItem(window.contentItem, drop.x, drop.y);
+        if (dragManager.isRmb) {
+            var pt = mouseItem ? mouseItem.mapToItem(window.contentItem, drop.x, drop.y)
+                               : Qt.point(drop.x, drop.y);
             rmbDropMenu.showAt(pt.x, pt.y, paths, destPath);
         } else {
             window.handleDrop(paths, destPath, asCopy);
@@ -751,12 +752,13 @@ Item {
                 }
             }
             DropArea {
+                id: emptyDrop
                 anchors.fill: parent
                 keys: ["text/uri-list"]
                 onDropped: function(drop) {
                     if (dragManager.hoverTarget.length > 0 || pane.dropTargetDir().length === 0)
                         return;
-                    pane.handleDropOn(drop, pane.dropTargetDir(), null);
+                    pane.handleDropOn(drop, pane.dropTargetDir(), emptyDrop);
                 }
             }
             GridView {
