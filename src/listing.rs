@@ -310,7 +310,10 @@ pub fn diff<T: EntryLike + Clone + PartialEq>(old: &[T], new: &[T]) -> Vec<Chang
     while i < old.len() || j < new.len() {
         if i < old.len() && j < new.len() && old[i].as_entry().path == new[j].as_entry().path {
             if old[i].as_entry() != new[j].as_entry() {
-                changes.push(Change::Update { at: k, item: new[j].clone() });
+                changes.push(Change::Update {
+                    at: k,
+                    item: new[j].clone(),
+                });
             }
             pending_old.remove(old[i].as_entry().path.as_str());
             i += 1;
@@ -404,7 +407,10 @@ pub fn disambiguate_shared(entries: &mut [Arc<Entry>]) {
             .and_then(|p| p.file_name())
             .map(|n| n.to_string_lossy().to_string())
             .unwrap_or_default();
-        *e = Arc::new(Entry { display_name: format!("{}/{}", parent, e.name), ..(**e).clone() });
+        *e = Arc::new(Entry {
+            display_name: format!("{}/{}", parent, e.name),
+            ..(**e).clone()
+        });
     }
 }
 
@@ -539,7 +545,12 @@ mod tests {
         // The model stores shared entries; the diff script over `Arc`s must
         // behave exactly like the plain-Entry one.
         let old: Vec<Entry> = vec![e("a", false, 1), e("b", false, 2), e("c", false, 3)];
-        let new: Vec<Entry> = vec![e("a", false, 1), e("b", false, 9), e("d", false, 4), e("c", false, 3)];
+        let new: Vec<Entry> = vec![
+            e("a", false, 1),
+            e("b", false, 9),
+            e("d", false, 4),
+            e("c", false, 3),
+        ];
         let shared = |v: &[Entry]| -> Vec<Arc<Entry>> { v.iter().cloned().map(Arc::new).collect() };
         assert_eq!(
             format!("{:?}", diff(&shared(&old), &shared(&new))),

@@ -1141,7 +1141,11 @@ fn archive_children(file: &Path, inner: &str, entries: &[archive::Entry]) -> Vec
         out.push(Entry {
             name: rest.to_string(),
             name_lower: rest.to_lowercase(),
-            path: Loc::Archive { file: file.to_path_buf(), inner: e.path.clone() }.to_string(),
+            path: Loc::Archive {
+                file: file.to_path_buf(),
+                inner: e.path.clone(),
+            }
+            .to_string(),
             is_dir: e.is_dir,
             is_symlink: false,
             is_hidden: rest.starts_with('.'),
