@@ -23,6 +23,7 @@ fn main() {
             .qml_file("qml/components/LoafPopup.qml")
             .qml_file("qml/components/LoafMenuItem.qml")
             .qml_file("qml/components/LoafMenu.qml")
+            .qml_file("qml/components/LoafSelect.qml")
             .qml_file("qml/components/LoafSegmented.qml")
             .qml_file("qml/components/LoafSwitch.qml")
             .qml_file("qml/components/LoafSlider.qml")
