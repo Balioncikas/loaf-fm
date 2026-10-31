@@ -71,7 +71,16 @@ fn b(v: &serde_json::Value, k: &str) -> bool {
 fn mountpoint_of(v: &serde_json::Value) -> String {
     // util-linux >= 2.37 reports "mountpoints": [...]; older "mountpoint".
     if let Some(arr) = v.get("mountpoints").and_then(|m| m.as_array()) {
-        if let Some(first) = arr.iter().filter_map(|m| m.as_str()).find(|m| !m.is_empty()) {
+        let valid: Vec<&str> = arr.iter().filter_map(|m| m.as_str()).filter(|m| !m.is_empty()).collect();
+        // If root "/" is in the mountpoints list, always prefer "/" over overlay/bind mounts
+        if valid.contains(&"/") {
+            return "/".to_string();
+        }
+        // Skip inaccessible system/container mountpoints if another path is available
+        if let Some(user_mount) = valid.iter().find(|m| !m.starts_with("/var/lib") && !m.starts_with("/nix")) {
+            return user_mount.to_string();
+        }
+        if let Some(first) = valid.first() {
             return first.to_string();
         }
     }

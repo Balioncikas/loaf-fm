@@ -322,8 +322,9 @@ Item {
             ? dragManager.asCopy
             : ((drop.proposedAction === Qt.CopyAction) || !(drop.supportedActions & Qt.MoveAction));
         drop.accept(asCopy ? Qt.CopyAction : Qt.MoveAction);
-        if (dragManager.isRmb && mouseItem) {
-            var pt = mouseItem.mapToItem(window.contentItem, drop.x, drop.y);
+        if (dragManager.isRmb) {
+            var pt = mouseItem ? mouseItem.mapToItem(window.contentItem, drop.x, drop.y)
+                               : Qt.point(drop.x, drop.y);
             rmbDropMenu.showAt(pt.x, pt.y, paths, destPath);
         } else {
             window.handleDrop(paths, destPath, asCopy);
@@ -427,38 +428,44 @@ Item {
                 Connections {
                     target: pane
                     function onSelectionChanged() {
+                        // Always here: it is the only way the canvas can
+                        // learn that the selection became empty.
                         selectionCanvas.requestPaint();
                     }
                 }
+                // Scrolling and resizing repaint the outline every frame,
+                // but only when something is selected; with an empty
+                // selection the canvas is blank and repaint noise is
+                // unwanted work (one raster repaint per scroll frame).
                 Connections {
                     target: gridView
-                    function onContentYChanged() { selectionCanvas.requestPaint(); }
-                    function onContentXChanged() { selectionCanvas.requestPaint(); }
-                    function onWidthChanged() { selectionCanvas.requestPaint(); }
+                    function onContentYChanged() { if (pane.selectedCount > 0) selectionCanvas.requestPaint(); }
+                    function onContentXChanged() { if (pane.selectedCount > 0) selectionCanvas.requestPaint(); }
+                    function onWidthChanged() { if (pane.selectedCount > 0) selectionCanvas.requestPaint(); }
                 }
                 Connections {
                     target: listView
-                    function onContentYChanged() { selectionCanvas.requestPaint(); }
-                    function onWidthChanged() { selectionCanvas.requestPaint(); }
+                    function onContentYChanged() { if (pane.selectedCount > 0) selectionCanvas.requestPaint(); }
+                    function onWidthChanged() { if (pane.selectedCount > 0) selectionCanvas.requestPaint(); }
                 }
                 Connections {
                     target: paneEngine
-                    function onView_modeChanged() { selectionCanvas.requestPaint(); }
-                    function onCurrent_pathChanged() { selectionCanvas.requestPaint(); }
-                    function onFilter_textChanged() { repaintTimer.restart(); }
-                    function onModelReset() { repaintTimer.restart(); }
-                    function onItem_countChanged() { repaintTimer.restart(); }
-                    function onLayoutChanged() { repaintTimer.restart(); }
+                    function onView_modeChanged() { if (pane.selectedCount > 0) selectionCanvas.requestPaint(); }
+                    function onCurrent_pathChanged() { if (pane.selectedCount > 0) selectionCanvas.requestPaint(); }
+                    function onFilter_textChanged() { if (pane.selectedCount > 0) repaintTimer.restart(); }
+                    function onModelReset() { if (pane.selectedCount > 0) repaintTimer.restart(); }
+                    function onItem_countChanged() { if (pane.selectedCount > 0) repaintTimer.restart(); }
+                    function onLayoutChanged() { if (pane.selectedCount > 0) repaintTimer.restart(); }
                 }
                 Connections {
                     target: gridView
-                    function onCountChanged() { repaintTimer.restart(); }
-                    function onCellWidthChanged() { repaintTimer.restart(); }
-                    function onCellHeightChanged() { repaintTimer.restart(); }
+                    function onCountChanged() { if (pane.selectedCount > 0) repaintTimer.restart(); }
+                    function onCellWidthChanged() { if (pane.selectedCount > 0) repaintTimer.restart(); }
+                    function onCellHeightChanged() { if (pane.selectedCount > 0) repaintTimer.restart(); }
                 }
                 Connections {
                     target: listView
-                    function onCountChanged() { repaintTimer.restart(); }
+                    function onCountChanged() { if (pane.selectedCount > 0) repaintTimer.restart(); }
                 }
 
                 // Rows settle a frame or two after the model changes, so paint
@@ -751,12 +758,13 @@ Item {
                 }
             }
             DropArea {
+                id: emptyDrop
                 anchors.fill: parent
                 keys: ["text/uri-list"]
                 onDropped: function(drop) {
                     if (dragManager.hoverTarget.length > 0 || pane.dropTargetDir().length === 0)
                         return;
-                    pane.handleDropOn(drop, pane.dropTargetDir(), null);
+                    pane.handleDropOn(drop, pane.dropTargetDir(), emptyDrop);
                 }
             }
             GridView {

@@ -263,11 +263,15 @@ Rectangle {
                 onClicked: rail.placeClicked(modelData, false)
                 onMiddleClicked: rail.placeClicked(modelData, true)
                 onMenuRequested: function(x, y) { rail.placeMenuRequested(modelData, x, y); }
-                onFilesDropped: function(paths, asCopy) {
-                    if (modelData.kind === "trash")
+                onFilesDropped: function(paths, asCopy, d) {
+                    if (dragManager.isRmb) {
+                        var pt = mapToItem(window.contentItem, d.x, d.y);
+                        rmbDropMenu.showAt(pt.x, pt.y, paths, modelData.kind === "trash" ? "trash" : dropPath);
+                    } else if (modelData.kind === "trash") {
                         core.trash_items(JSON.stringify(paths));
-                    else if (dropPath.length > 0)
+                    } else if (dropPath.length > 0) {
                         window.handleDrop(paths, dropPath, asCopy);
+                    }
                 }
                 acceptsTrashDrop: modelData.kind === "trash"
             }
@@ -329,8 +333,13 @@ Rectangle {
                 onClicked: rail.placeClicked(rail.trashPlace, false)
                 onMiddleClicked: rail.placeClicked(rail.trashPlace, true)
                 onMenuRequested: function(x, y) { rail.placeMenuRequested(rail.trashPlace, x, y); }
-                onFilesDropped: function(paths, asCopy) {
-                    core.trash_items(JSON.stringify(paths));
+                onFilesDropped: function(paths, asCopy, d) {
+                    if (dragManager.isRmb) {
+                        var pt = mapToItem(window.contentItem, d.x, d.y);
+                        rmbDropMenu.showAt(pt.x, pt.y, paths, "trash");
+                    } else {
+                        core.trash_items(JSON.stringify(paths));
+                    }
                 }
             }
         }
@@ -364,7 +373,7 @@ Rectangle {
         signal clicked()
         signal middleClicked()
         signal menuRequested(real x, real y)
-        signal filesDropped(var paths, bool asCopy)
+        signal filesDropped(var paths, bool asCopy, var dropEvent)
 
         implicitHeight: 44
         height: 44
@@ -455,7 +464,7 @@ Rectangle {
                     return;
                 var asCopy = (d.source === dragProxy) ? dragManager.asCopy : (d.proposedAction === Qt.CopyAction);
                 d.accept(asCopy ? Qt.CopyAction : Qt.MoveAction);
-                btn.filesDropped(paths, asCopy);
+                btn.filesDropped(paths, asCopy, d);
             }
         }
 
